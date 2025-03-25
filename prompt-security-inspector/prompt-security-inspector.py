@@ -49,7 +49,8 @@ def main():
         sys.exit(1)
 
     with open(outputfile, 'w') as output_file:
-        output_file.write(f",Expected Result,Expected Result (text),Action,\"User Prompt\",Sensitive Data Object\n")
+        csvwriter = csv.writer(output_file, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        csvwriter.writerow(['Expected Result','Expected Result (text)','Action','User Prompt','Modified Prompt','Violations','Sensitive Data Object'])
         if filename.lower().endswith('.csv'):
             with open(filename, "r", newline='') as infile:
                 reader = csv.reader(infile)
@@ -65,7 +66,7 @@ def main():
                     else:
                         expected_result_text = "pass"
                     # Scan user prompt with Prompt Security
-                    true_positive, true_negative, false_positive, false_negative = process_prompt_results(appid, output_file, user_prompt, system_prompt, expected_result, expected_result_text, true_positive, true_negative, false_negative, false_positive)
+                    true_positive, true_negative, false_positive, false_negative = process_prompt_results(appid, csvwriter, user_prompt, system_prompt, expected_result, expected_result_text, true_positive, true_negative, false_negative, false_positive)
                     time.sleep(0.1)
         elif filename.lower().endswith('.parquet'):
             try:
@@ -75,7 +76,10 @@ def main():
                 print(f"Error reading the Parquet file: {e}")
                 sys.exit(1)
 
-            df = df.iloc[1000:1100]
+            df = df.sample(50)
+            with open("sampleprompts", "wb") as f:
+                f.write(df.to_csv(index=False).encode())
+            #df = df.iloc[300:400]
             # Iterate over each row in the DataFrame and print it
             for index, row in df.iterrows():
                 user_prompt = row['prompt']
@@ -89,7 +93,7 @@ def main():
                 else:
                     expected_result_text = "pass"
                 # Scan user prompt with Prompt Security
-                true_positive, true_negative, false_positive, false_negative = process_prompt_results(appid, output_file, user_prompt, system_prompt, expected_result, expected_result_text, true_positive, true_negative, false_negative, false_positive)
+                true_positive, true_negative, false_positive, false_negative = process_prompt_results(appid, csvwriter, user_prompt, system_prompt, expected_result, expected_result_text, true_positive, true_negative, false_negative, false_positive)
 
 
     print("Final Results:")
@@ -100,7 +104,7 @@ def main():
 
     output_file.close()
 
-def process_prompt_results(appid, output_file, user_prompt, system_prompt, expected_result, expected_result_text, true_positive, true_negative, false_negative, false_positive):
+def process_prompt_results(appid, csvwriter, user_prompt, system_prompt, expected_result, expected_result_text, true_positive, true_negative, false_negative, false_positive):
     ps_ret = ps_protect_api_async(appid, user_prompt, system_prompt, None, 'user@domain.com')
     print("user_prompt= " + user_prompt + "; action = " + ps_ret["result"]["prompt"]["action"] )
     sensitive_data = ""
@@ -109,7 +113,7 @@ def process_prompt_results(appid, output_file, user_prompt, system_prompt, expec
         sensitive_data = ps_ret["result"]["prompt"]["findings"]["Sensitive Data"]
     if "modified_text" in ps_ret["result"]["prompt"]:
         modified_text = ps_ret["result"]["prompt"]["modified_text"]
-    output_file.write(f"{expected_result},{expected_result_text},{ps_ret['result']['prompt']['action']},\"{user_prompt}\",\"{modified_text}\",\"{ps_ret['result']['prompt']['violations']},{sensitive_data}\"\n")
+    csvwriter.writerow([expected_result,expected_result_text,ps_ret['result']['prompt']['action'],user_prompt,modified_text,json.dumps(ps_ret['result']['prompt']['violations']),json.dumps(sensitive_data)])
     if ps_ret["result"]["prompt"]["action"] == "log":
         if expected_result_text == "pass":
             true_negative += 1
