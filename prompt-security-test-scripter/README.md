@@ -56,3 +56,7 @@ Jacob Graves - jacob@prompt.security
 Project Link: [Prompt Security Test Scripter](https://github.com/prompt-security/sample_code/edit/main/prompt-security-inspector)
 
 
+<!-- REFERENCES -->
+## Reference
+
+ This project uses Benign Malicious Prompt Classifications, licensed under the Apache License, Version 2.0. See the HuggingFace for the full license text: [Guychuk's benign-malicious-prompt-classification](https://huggingface.co/datasets/guychuk/benign-malicious-prompt-classification)

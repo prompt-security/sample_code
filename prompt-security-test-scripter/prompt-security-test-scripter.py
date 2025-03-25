@@ -54,17 +54,13 @@ def main():
         if filename.lower().endswith('.csv'):
             with open(filename, "r", newline='') as infile:
                 reader = csv.reader(infile)
+                next(reader) #Skip the header row
                 for row in reader:
                     user_prompt = row[0]
                     system_prompt = ""
                     expected_result = row[1]
                     expected_result_text = ""
-                    if(expected_result != 1 and expected_result != 0):
-                        expected_result_text = expected_result
-                    elif(expected_result == 1):
-                        expected_result_text = "fail"
-                    else:
-                        expected_result_text = "pass"
+                    expected_result_text = convert_expected_result(expected_result)
                     # Scan user prompt with Prompt Security
                     true_positive, true_negative, false_positive, false_negative = process_prompt_results(appid, csvwriter, user_prompt, system_prompt, expected_result, expected_result_text, true_positive, true_negative, false_negative, false_positive)
                     time.sleep(0.1)
@@ -77,8 +73,8 @@ def main():
                 sys.exit(1)
 
             df = df.sample(50)
-            with open("sampleprompts", "wb") as f:
-                f.write(df.to_csv(index=False).encode())
+            # with open("sampleprompts.csv", "wb") as f:
+            #     f.write(df.to_csv(index=False).encode())
             #df = df.iloc[300:400]
             # Iterate over each row in the DataFrame and print it
             for index, row in df.iterrows():
@@ -86,12 +82,7 @@ def main():
                 system_prompt = ""
                 expected_result = row['label']
                 expected_result_text = ""
-                if(expected_result != 1 and expected_result != 0):
-                    expected_result_text = expected_result
-                elif(expected_result == 1):
-                    expected_result_text = "fail"
-                else:
-                    expected_result_text = "pass"
+                expected_result_text = convert_expected_result(expected_result)
                 # Scan user prompt with Prompt Security
                 true_positive, true_negative, false_positive, false_negative = process_prompt_results(appid, csvwriter, user_prompt, system_prompt, expected_result, expected_result_text, true_positive, true_negative, false_negative, false_positive)
 
@@ -101,8 +92,18 @@ def main():
     print("True Negative: " + str(true_negative))
     print("False Positive: " + str(false_positive))
     print("False Negative: " + str(false_negative))
-
+    print("total accuracy rate: " + str((true_positive + true_negative) / (true_positive + true_negative + false_positive + false_negative)))
     output_file.close()
+
+def convert_expected_result(expected_result):
+    expected_result = int(expected_result)
+    if(expected_result != 1 and expected_result != 0):
+        expected_result_text = expected_result
+    elif(expected_result == 1):
+        expected_result_text = "fail"
+    else:
+        expected_result_text = "pass"
+    return expected_result_text
 
 def process_prompt_results(appid, csvwriter, user_prompt, system_prompt, expected_result, expected_result_text, true_positive, true_negative, false_negative, false_positive):
     ps_ret = ps_protect_api_async(appid, user_prompt, system_prompt, None, 'user@domain.com')
@@ -126,7 +127,21 @@ def process_prompt_results(appid, csvwriter, user_prompt, system_prompt, expecte
             true_positive += 1
     return true_positive,true_negative,false_positive,false_negative
 
+
 def ps_protect_api_async(appid: str, prompt: str, system_prompt: Optional[str] = None, response: Optional[str] = None, user: Optional[str] = None):
+    """
+    Sends a request to a remote service to evaluate a user's prompt for potential policy violations.
+
+    Parameters:
+        appid (str): The application identifier.
+        prompt (str): The user input text to be analyzed.
+        system_prompt (Optional[str]): Additional system-level context for the request.
+        response (Optional[str]): Optional response text to be included in the analysis.
+        user (Optional[str]): An optional user identifier.
+
+    Returns:
+        dict: A JSON response with details about the content analysis.
+    """
     headers = {
         'APP-ID': appid,
         'Content-Type': 'application/json'
