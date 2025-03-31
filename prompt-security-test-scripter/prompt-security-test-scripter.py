@@ -50,7 +50,7 @@ def main():
 
     with open(outputfile, 'w') as output_file:
         csvwriter = csv.writer(output_file, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL)
-        csvwriter.writerow(['Expected Result','Expected Result (text)','Action','User Prompt','Modified Prompt','Violations','Sensitive Data Object'])
+        csvwriter.writerow(['Expected Result','Expected Result (text)','Action','User Prompt','Modified Prompt','Violations','Sensitive Data Object','Secret Detection Type'])
         if filename.lower().endswith('.csv'):
             with open(filename, "r", newline='') as infile:
                 reader = csv.reader(infile)
@@ -103,18 +103,21 @@ def convert_expected_result(expected_result):
         expected_result_text = "fail"
     else:
         expected_result_text = "pass"
-    return expected_result_text
+    return expected_result_text 
 
 def process_prompt_results(appid, csvwriter, user_prompt, system_prompt, expected_result, expected_result_text, true_positive, true_negative, false_negative, false_positive):
-    ps_ret = ps_protect_api_async(appid, user_prompt, system_prompt, None, 'user@domain.com')
+    ps_ret = ps_protect_api_async(appid, user_prompt, system_prompt, None, 'test-script@prompt-security.com')
     print("user_prompt= " + user_prompt + "; action = " + ps_ret["result"]["prompt"]["action"] )
     sensitive_data = ""
     modified_text = ""
+    secrets_category = ""
     if "Sensitive Data" in ps_ret["result"]["prompt"]["findings"]:
         sensitive_data = ps_ret["result"]["prompt"]["findings"]["Sensitive Data"]
     if "modified_text" in ps_ret["result"]["prompt"]:
         modified_text = ps_ret["result"]["prompt"]["modified_text"]
-    csvwriter.writerow([expected_result,expected_result_text,ps_ret['result']['prompt']['action'],user_prompt,modified_text,json.dumps(ps_ret['result']['prompt']['violations']),json.dumps(sensitive_data)])
+    if "Secrets" in ps_ret["result"]["prompt"]["findings"]:
+        secrets_category = ps_ret["result"]["prompt"]["findings"].get("Secrets", [{}])[0].get("entity_type", None) 
+    csvwriter.writerow([expected_result,expected_result_text,ps_ret['result']['prompt']['action'],user_prompt,modified_text,json.dumps(ps_ret['result']['prompt']['violations']),json.dumps(sensitive_data),secrets_category])
     if ps_ret["result"]["prompt"]["action"] == "log":
         if expected_result_text == "pass":
             true_negative += 1
