@@ -31,6 +31,12 @@ def main():
             appid = sys.argv[sys.argv.index('-a') + 1]
         except:
             pass
+
+    if '-r' in sys.argv:
+        try:
+            region = sys.argv[sys.argv.index('-r') + 1]
+        except:
+            pass
             
     if not filename or not outputfile:
         print("Usage: python scriptname.py -f <inputfile> -o <outputfile>")
@@ -62,7 +68,7 @@ def main():
                     expected_result_text = ""
                     expected_result_text = convert_expected_result(expected_result)
                     # Scan user prompt with Prompt Security
-                    true_positive, true_negative, false_positive, false_negative = process_prompt_results(appid, csvwriter, user_prompt, system_prompt, expected_result, expected_result_text, true_positive, true_negative, false_negative, false_positive)
+                    true_positive, true_negative, false_positive, false_negative = process_prompt_results(region, appid, csvwriter, user_prompt, system_prompt, expected_result, expected_result_text, true_positive, true_negative, false_negative, false_positive)
                     time.sleep(0.1)
         elif filename.lower().endswith('.parquet'):
             try:
@@ -84,7 +90,7 @@ def main():
                 expected_result_text = ""
                 expected_result_text = convert_expected_result(expected_result)
                 # Scan user prompt with Prompt Security
-                true_positive, true_negative, false_positive, false_negative = process_prompt_results(appid, csvwriter, user_prompt, system_prompt, expected_result, expected_result_text, true_positive, true_negative, false_negative, false_positive)
+                true_positive, true_negative, false_positive, false_negative = process_prompt_results(region, appid, csvwriter, user_prompt, system_prompt, expected_result, expected_result_text, true_positive, true_negative, false_negative, false_positive)
 
 
     print("Final Results:")
@@ -105,9 +111,9 @@ def convert_expected_result(expected_result):
         expected_result_text = "pass"
     return expected_result_text
 
-def process_prompt_results(appid, csvwriter, user_prompt, system_prompt, expected_result, expected_result_text, true_positive, true_negative, false_negative, false_positive):
-    ps_ret = ps_protect_api_async(appid, user_prompt, system_prompt, None, 'user@domain.com')
-    print("user_prompt= " + user_prompt + "; action = " + ps_ret["result"]["prompt"]["action"] )
+def process_prompt_results(region, appid, csvwriter, user_prompt, system_prompt, expected_result, expected_result_text, true_positive, true_negative, false_negative, false_positive):
+    ps_ret = ps_protect_api_async(region, appid, user_prompt, system_prompt, None, 'user@domain.com')
+    # print("user_prompt= " + user_prompt + "; action = " + ps_ret["result"]["prompt"]["action"] )
     sensitive_data = ""
     modified_text = ""
     if "Sensitive Data" in ps_ret["result"]["prompt"]["findings"]:
@@ -128,11 +134,12 @@ def process_prompt_results(appid, csvwriter, user_prompt, system_prompt, expecte
     return true_positive,true_negative,false_positive,false_negative
 
 
-def ps_protect_api_async(appid: str, prompt: str, system_prompt: Optional[str] = None, response: Optional[str] = None, user: Optional[str] = None):
+def ps_protect_api_async(region: str, appid: str, prompt: str, system_prompt: Optional[str] = None, response: Optional[str] = None, user: Optional[str] = None):
     """
     Sends a request to a remote service to evaluate a user's prompt for potential policy violations.
 
     Parameters:
+        region (str): Prompt region
         appid (str): The application identifier.
         prompt (str): The user input text to be analyzed.
         system_prompt (Optional[str]): Additional system-level context for the request.
@@ -153,7 +160,7 @@ def ps_protect_api_async(appid: str, prompt: str, system_prompt: Optional[str] =
         'user': user
     }
     with httpx.Client() as client:
-        ret = client.post('https://useast.prompt.security/api/protect', headers=headers, json=payload)
+        ret = client.post('https://{}.prompt.security/api/protect'.format(region), headers=headers, json=payload)
         return ret.json()
 
 

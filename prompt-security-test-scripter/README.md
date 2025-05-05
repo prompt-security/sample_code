@@ -16,7 +16,7 @@ Clone this repo, or simply download the python file and requirements.txt.
 ## Usage
 
 A simple way to invoke this script:
-`prompt-security-test-scripter.py -f inputfile.csv -o outputfile.csv -a {your_prompt_api_key}`
+`prompt-security-test-scripter.py -f inputfile.csv -o outputfile.csv -a {your_prompt_api_key} -r {prompt_region}`
 
 For this, you should have a simple CSV called `inputfile.csv` with a format like this:
 
@@ -52,6 +52,9 @@ Don't forget to give the project a star! Thanks again!
 ## Contact
 
 Jacob Graves - jacob@prompt.security
+
+Ori Tabac - oritabac@prompt.security
+
 
 Project Link: [Prompt Security Test Scripter](https://github.com/prompt-security/sample_code/edit/main/prompt-security-inspector)
 
